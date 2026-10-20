@@ -1,4 +1,4 @@
-// Dùng: node tools/build.mjs "<thư mục chứa các file 'NNN - Ten.pdf'>"
+// Dùng: node tools/build.mjs "<thư mục chứa các file 'NNN - Ten.pdf'>" [--new-salt]
 // Cần tools/names.json: [{"stt":1,"name":"Đặng Phương Nam"}, ...]  (file này KHÔNG được commit)
 // Kết quả: certs/<hash>.pdf  +  data/index.js  (chỉ chứa hash, không chứa tên)
 import fs from 'node:fs';
@@ -17,9 +17,14 @@ const people = JSON.parse(fs.readFileSync(path.join(root, 'tools/names.json'), '
 
 const certsDir = path.join(root, 'certs');
 fs.mkdirSync(certsDir, { recursive: true });
-for (const f of fs.readdirSync(certsDir)) if (f.endsWith('.pdf')) fs.unlinkSync(path.join(certsDir, f));
 
-const salt = crypto.randomBytes(8).toString('hex');
+// Giữ nguyên salt cũ (link/hash ổn định khi chỉ thay nội dung PDF); thêm --new-salt để đổi salt.
+let salt = crypto.randomBytes(8).toString('hex');
+const idx = path.join(root, 'data/index.js');
+if (!process.argv.includes('--new-salt') && fs.existsSync(idx)) {
+  const m = /"salt":\s*"([0-9a-f]+)"/.exec(fs.readFileSync(idx, 'utf8'));
+  if (m) salt = m[1];
+}
 const sha = (s) => crypto.createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 32);
 const pdfs = fs.readdirSync(src).filter((f) => /^\d+ - .+\.pdf$/i.test(f));
 const seen = new Map();
@@ -35,6 +40,9 @@ for (const p of people) {
   fs.copyFileSync(path.join(src, match[0]), path.join(certsDir, h + '.pdf'));
   files.push(h);
 }
+// Xoá PDF cũ không còn trong danh sách (sau khi đã copy xong)
+const keep = new Set(files.map((h) => h + '.pdf'));
+for (const f of fs.readdirSync(certsDir)) if (f.endsWith('.pdf') && !keep.has(f)) fs.unlinkSync(path.join(certsDir, f));
 fs.writeFileSync(path.join(root, 'data/index.js'),
   `/* Tự sinh bởi tools/build.mjs — không chứa họ tên, chỉ chứa mã băm. */\nwindow.CERT_INDEX = ${JSON.stringify({ salt, files }, null, 1)};\n`);
 console.log(`OK: ${files.length} giấy chứng nhận -> certs/`);
