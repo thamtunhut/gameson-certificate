@@ -20,6 +20,10 @@ Site tĩnh (HTML/CSS/JS thuần, không build, không dependency). Tình nguyệ
 1. Sửa `tools/names.json` (`[{"stt":1,"name":"..."}]`) và chuẩn bị thư mục chứa các PDF dạng `NNN - Ten.pdf`.
 2. Chạy `node tools/build.mjs "<thư mục PDF>"` → sinh lại `certs/` và `data/index.js` (salt mới mỗi lần).
 
+## Khoá chỉnh sửa PDF
+Các PDF trong `certs/` đã đặt owner password (AES-128): mở, xem, in bình thường; trình xem tôn trọng cờ quyền sẽ chặn sửa nội dung, sao chép chữ, ghi chú, ghép/xoá trang. Đây là biện pháp làm khó, không chặn tuyệt đối (công cụ cố tình bỏ qua cờ quyền vẫn sửa được) — xác minh bằng cách tra tên trên site.
+Khoá lại sau khi sinh PDF mới: `OWNER_PW='...' python3 tools/protect.py <PDF nguồn> <PDF đã khoá>` rồi `node tools/build.mjs <PDF đã khoá>`. **Không commit mật khẩu owner.**
+
 ## Hình ảnh nhận diện (tuỳ chọn)
 Site vẫn hiển thị tốt khi thiếu ảnh (tự ẩn hoặc thay bằng chữ). Để đồng bộ với trang sự kiện, lưu các file sau vào `assets/img/` (lấy từ https://vnggames.com/games-on-hai-phong-2026/_astro/):
 
